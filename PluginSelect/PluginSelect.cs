@@ -196,7 +196,7 @@ namespace PluginSelect
 										if (GlobalTypeRegistry.CoreAssemblies.Contains(asm))
 											PluginsToRemove.Add(asm);
 									}
-									selectPluginsButton.LabelText = GetText($"Selected Plugins: {SelectedPluginsCount()}");
+									selectPluginsButton.LabelText = GetSelectedPluginsText();
 								};
 							}
 						}
