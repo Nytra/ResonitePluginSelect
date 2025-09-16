@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>12</LangVersion>
+    <AssemblyTitle>PluginSelect</AssemblyTitle>
+    <Company>Nytra</Company>
+    <Product>PluginSelect</Product>
+    <Copyright>Copyright © Nytra 2025</Copyright>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Resonite.GameLibs" Version="2025.9.1.1178" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\rml_libs\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="ResoniteHotReloadLib">
+      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\rml_libs\ResoniteHotReloadLib.dll</HintPath>
+    </Reference>
+    <Reference Include="ResoniteModLoader">
+      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Libraries\ResoniteModLoader.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="G:\SteamLibrary\steamapps\common\Resonite\rml_mods\HotReloadMods" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="G:\SteamLibrary\steamapps\common\Resonite\rml_mods" />
+  </Target>
+</Project>
