@@ -1,4 +1,4 @@
-﻿#define DEBUG
+﻿//#define DEBUG
 
 using Elements.Core;
 using Elements.Data;
