@@ -73,13 +73,15 @@ namespace PluginSelect
 			internal static NewWorldDialog CurrentInstance = null;
 			internal static List<AssemblyTypeRegistry> GetAssembliesToLoad()
 			{
+				// Using a List because that's what FrooxEngine normally uses
+
 				List<AssemblyTypeRegistry> list = new();
 				foreach (var coreAsm in GlobalTypeRegistry.CoreAssemblies)
 					list.Add(coreAsm);
-				foreach (var pluginAsm in PluginSelectPatch.SelectedPlugins)
-					list.Add(pluginAsm);
 				foreach (var toRemoveAsm in PluginSelectPatch.PluginsToRemove)
 					list.Remove(toRemoveAsm);
+				foreach (var pluginAsm in PluginSelectPatch.SelectedPlugins)
+					list.Add(pluginAsm);
 				return list;
 			}
 			static HashSet<AssemblyTypeRegistry> InitLoadedPlugins()
@@ -136,7 +138,7 @@ namespace PluginSelect
 					if (__instance.FilterWorldElement() is null) return;
 
 #if DEBUG
-					__instance.OpenInspectorForTarget();
+					//__instance.OpenInspectorForTarget();
 #endif
 
 					Reset();
@@ -155,12 +157,10 @@ namespace PluginSelect
 						if (root is null)
 						{
 							// create physical panel as a backup
-							var newSlot = __instance.Slot.GetObjectRoot().AddSlot("Plugins Panel");
+							var newSlot = __instance.Slot.GetObjectRoot().AddSlot("Plugin Select Panel");
 							pluginsUi = RadiantUI_Panel.SetupPanel(newSlot, "Plugins", new float2(300f, 500f));
 							root = pluginsUi.CurrentRect;
 							newSlot.PersistentSelf = false;
-							//newSlot.LocalScale *= 0.0005f;
-							//newSlot.CopyTransform(__instance.Slot);
 							Sync<float3> position_Field = newSlot.Position_Field;
 							float3 a = newSlot.LocalPosition;
 							floatQ q = newSlot.LocalRotation;
@@ -168,56 +168,50 @@ namespace PluginSelect
 							float3 v2 = q * v;
 							float3 b = v2 * -60f;
 							position_Field.TweenTo(a + b, 0.2f);
-							__instance.Slot.Destroyed += (destroyable) => 
+							__instance.Slot.OnPrepareDestroy += (slot) => 
 							{ 
 								newSlot.Destroy();
 							};
 						}
-							
-						if (root != null)
-						{
-							pluginsUi ??= new UIBuilder(root);
-							RadiantUI_Constants.SetupDefaultStyle(pluginsUi);
-							pluginsUi.Style.MinHeight = 32f;
-							pluginsUi.Style.PreferredHeight = 32f;
-							pluginsUi.ScrollArea();
-							pluginsUi.VerticalLayout(4f);
-							pluginsUi.FitContent(SizeFit.Disabled, SizeFit.PreferredSize);
-							if (_loadedPlugins.Count == 0)
-							{
-								pluginsUi.Text("No plugins are loaded.");
-								return;
-							}
-							foreach (var asm in _loadedPlugins)
-							{
-								pluginsUi.Checkbox(asm.AssemblyName, IsPluginSelected(asm)).State.OnValueChange += field => 
-								{ 
-									if (__instance.FilterWorldElement() is null) return;
-									if (field.Value)
-									{
-										SelectedPlugins.Add(asm);
-										PluginsToRemove.Remove(asm);
 
-									}
-									else
-									{
-										SelectedPlugins.Remove(asm);
-										if (GlobalTypeRegistry.CoreAssemblies.Contains(asm))
-											PluginsToRemove.Add(asm);
-									}
-									selectPluginsButton.LabelText = GetSelectedPluginsText();
-								};
-							}
+						pluginsUi ??= new UIBuilder(root);
+						RadiantUI_Constants.SetupDefaultStyle(pluginsUi);
+						pluginsUi.Style.MinHeight = 32f;
+						pluginsUi.Style.PreferredHeight = 32f;
+						pluginsUi.ScrollArea();
+						pluginsUi.VerticalLayout(4f);
+						pluginsUi.FitContent(SizeFit.Disabled, SizeFit.PreferredSize);
+						if (_loadedPlugins.Count == 0)
+						{
+							pluginsUi.Text("No plugins are loaded.");
+							return;
+						}
+						foreach (var asm in _loadedPlugins)
+						{
+							pluginsUi.Checkbox(asm.AssemblyName, IsPluginSelected(asm)).State.OnValueChange += field =>
+							{
+								if (__instance.FilterWorldElement() is null) return;
+								if (field.Value)
+								{
+									if (!GlobalTypeRegistry.CoreAssemblies.Contains(asm))
+										SelectedPlugins.Add(asm);
+									PluginsToRemove.Remove(asm);
+
+								}
+								else
+								{
+									SelectedPlugins.Remove(asm);
+									if (GlobalTypeRegistry.CoreAssemblies.Contains(asm))
+										PluginsToRemove.Add(asm);
+								}
+								selectPluginsButton.LabelText = GetSelectedPluginsText();
+							};
 						}
 					};
 					__instance.Slot.OnPrepareDestroy += (slot) => 
 					{
 						if (UsePatch) return;
 						Reset();
-						//Userspace.UserspaceWorld.RunInUpdates(7, () => 
-						//{
-							//if (UsePatch) return;
-						//});
 					};
 				});
 			}
