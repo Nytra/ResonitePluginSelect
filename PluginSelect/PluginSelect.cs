@@ -34,8 +34,8 @@ namespace PluginSelect
 				if (assemblies != null) return true;
 				if (!PluginSelectPatch.UsePatch) return true;
 				PluginSelectPatch.UsePatch = false;
-				if (PluginSelectPatch.SelectedPlugins.Count == 0 && PluginSelectPatch.PluginsToRemove.Count == 0) return true;
-				Debug("Starting session with custom assemblies...");
+				if (PluginSelectPatch.SelectedOptionalPlugins.Count == 0 && PluginSelectPatch.CorePluginsToRemove.Count == 0) return true;
+				Msg("Starting session with custom assemblies...");
 				var newAsms = PluginSelectPatch.GetAssembliesToLoad();
 				PluginSelectPatch.Reset();
 				__result = World.StartSession(manager, init, port, forceSessionId, load, record, unsafeMode, newAsms);
@@ -67,8 +67,8 @@ namespace PluginSelect
 		class PluginSelectPatch
 		{
 			static HashSet<AssemblyTypeRegistry> _loadedPlugins = null;
-			internal static HashSet<AssemblyTypeRegistry> SelectedPlugins = new();
-			internal static HashSet<AssemblyTypeRegistry> PluginsToRemove = new();
+			internal static HashSet<AssemblyTypeRegistry> SelectedOptionalPlugins = new();
+			internal static HashSet<AssemblyTypeRegistry> CorePluginsToRemove = new();
 			internal static bool UsePatch = false;
 			internal static NewWorldDialog CurrentInstance = null;
 			internal static List<AssemblyTypeRegistry> GetAssembliesToLoad()
@@ -76,12 +76,12 @@ namespace PluginSelect
 				// Using a List because that's what FrooxEngine normally uses
 
 				List<AssemblyTypeRegistry> list = new();
-				foreach (var coreAsm in GlobalTypeRegistry.CoreAssemblies)
+				foreach (var coreAsm in GlobalTypeRegistry.CoreAssemblies) // default assemblies
 					list.Add(coreAsm);
-				foreach (var toRemoveAsm in PluginSelectPatch.PluginsToRemove)
+				foreach (var toRemoveAsm in PluginSelectPatch.CorePluginsToRemove) // core assembly plugins that the user doesn't want for this session (e.g. Project Obsidian)
 					list.Remove(toRemoveAsm);
-				foreach (var pluginAsm in PluginSelectPatch.SelectedPlugins)
-					list.Add(pluginAsm);
+				foreach (var optionalPluginAsm in PluginSelectPatch.SelectedOptionalPlugins) // optional plugins
+					list.Add(optionalPluginAsm);
 				return list;
 			}
 			static HashSet<AssemblyTypeRegistry> InitLoadedPlugins()
@@ -108,21 +108,20 @@ namespace PluginSelect
 			}
 			internal static void Reset()
 			{
-				SelectedPlugins.Clear();
-				PluginsToRemove.Clear();
+				SelectedOptionalPlugins.Clear();
+				CorePluginsToRemove.Clear();
 				UsePatch = false;
 				CurrentInstance = null;
 			}
 			static string GetSelectedPluginsText()
 			{
 				var str = $"<b>Selected Plugins: {SelectedPluginsCount()}/{_loadedPlugins.Count}</b>";
-				//if (_loadedPlugins.Count > 0)
 				str = $"<color=hero.green>{str}</color>";
 				return str;
 			}
 			static bool IsPluginSelected(AssemblyTypeRegistry atr)
 			{
-				return !PluginsToRemove.Contains(atr) && (SelectedPlugins.Contains(atr) || GlobalTypeRegistry.CoreAssemblies.Contains(atr));
+				return !CorePluginsToRemove.Contains(atr) && (SelectedOptionalPlugins.Contains(atr) || GlobalTypeRegistry.CoreAssemblies.Contains(atr));
 			}
 			static int SelectedPluginsCount()
 			{
@@ -130,7 +129,6 @@ namespace PluginSelect
 			}
 			static void Postfix(NewWorldDialog __instance)
 			{
-				Debug("BuildUI Postfix");
 				_loadedPlugins ??= InitLoadedPlugins();
 
 				__instance.RunInUpdates(3, () => 
@@ -141,14 +139,18 @@ namespace PluginSelect
 					//__instance.OpenInspectorForTarget();
 #endif
 
-					Reset();
-					CurrentInstance = __instance;
-
 					var mainUi = new UIBuilder(__instance.Slot);
 					RadiantUI_Constants.SetupDefaultStyle(mainUi);
 					mainUi.Style.MinHeight = 32f;
 					mainUi.Style.PreferredHeight = 32f;
-					mainUi.NestInto(__instance.Slot[2][1][0]);
+					mainUi.NestInto(__instance.Slot[2][1][0]); // Could throw errors if the slot layout of the NewWorldDialog ever changes
+					if (_loadedPlugins.Count == 0)
+					{
+						mainUi.Text("No plugins are loaded.");
+						return;
+					}
+					Reset();
+					CurrentInstance = __instance;
 					var selectPluginsButton = mainUi.Button(GetSelectedPluginsText());
 					selectPluginsButton.LocalPressed += (btn, data) => 
 					{
@@ -190,19 +192,19 @@ namespace PluginSelect
 						{
 							pluginsUi.Checkbox(asm.AssemblyName, IsPluginSelected(asm)).State.OnValueChange += field =>
 							{
-								if (__instance.FilterWorldElement() is null) return;
+								if (__instance.Slot.FilterWorldElement() is null) return;
 								if (field.Value)
 								{
 									if (!GlobalTypeRegistry.CoreAssemblies.Contains(asm))
-										SelectedPlugins.Add(asm);
-									PluginsToRemove.Remove(asm);
+										SelectedOptionalPlugins.Add(asm);
+									CorePluginsToRemove.Remove(asm);
 
 								}
 								else
 								{
-									SelectedPlugins.Remove(asm);
+									SelectedOptionalPlugins.Remove(asm);
 									if (GlobalTypeRegistry.CoreAssemblies.Contains(asm))
-										PluginsToRemove.Add(asm);
+										CorePluginsToRemove.Add(asm);
 								}
 								selectPluginsButton.LabelText = GetSelectedPluginsText();
 							};
@@ -210,6 +212,7 @@ namespace PluginSelect
 					};
 					__instance.Slot.OnPrepareDestroy += (slot) => 
 					{
+						// UsePatch being true here means a session is about to be started, so the state needs to be kept until that happens
 						if (UsePatch) return;
 						Reset();
 					};
