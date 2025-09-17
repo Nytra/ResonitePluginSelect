@@ -1,6 +1,7 @@
 ﻿#define DEBUG
 
 using Elements.Core;
+using Elements.Data;
 using FrooxEngine;
 using FrooxEngine.UIX;
 using HarmonyLib;
@@ -83,6 +84,11 @@ namespace PluginSelect
 			}
 			static HashSet<AssemblyTypeRegistry> InitLoadedPlugins()
 			{
+				// A plugin can be:
+				// A data model assembly marked as Optional
+				// A data model assembly marked as Core and located in the Libraries folder (e.g. Project Obsidian)
+				//     - Obsidian has its own way to toggle its presence in the core assemblies list, but it's also good to support it in this mod
+
 				Msg("Getting loaded plugins...");
 				var dataModelAssemblies = GlobalTypeRegistry.DataModelAssemblies;
 				HashSet<AssemblyTypeRegistry> plugins = new();
@@ -90,7 +96,7 @@ namespace PluginSelect
 				{
 					Debug($"{dataModelAssembly.AssemblyName} {dataModelAssembly.AssemblyType} {dataModelAssembly.Assembly.Location}");
 					var dirInfo = new DirectoryInfo(Path.GetDirectoryName(dataModelAssembly.Assembly.Location));
-					if (dataModelAssembly.AssemblyType != Elements.Data.DataModelAssemblyType.UserspaceCore && (dataModelAssembly.AssemblyType == Elements.Data.DataModelAssemblyType.Optional || dirInfo.Name == "Libraries"))
+					if (dataModelAssembly.AssemblyType != DataModelAssemblyType.UserspaceCore && (dataModelAssembly.AssemblyType == DataModelAssemblyType.Optional || dirInfo.Name == "Libraries"))
 					{
 						Msg("Found plugin: " + dataModelAssembly.AssemblyName);
 						plugins.Add(dataModelAssembly);
@@ -105,13 +111,12 @@ namespace PluginSelect
 				UsePatch = false;
 				CurrentInstance = null;
 			}
-			static string GetText(string msg)
-			{
-				return $"<color=hero.green><b>{msg}</b></color>";
-			}
 			static string GetSelectedPluginsText()
 			{
-				return GetText($"Selected Plugins: {SelectedPluginsCount()}");
+				var str = $"<b>Selected Plugins: {SelectedPluginsCount()}/{_loadedPlugins.Count}</b>";
+				//if (_loadedPlugins.Count > 0)
+				str = $"<color=hero.green>{str}</color>";
+				return str;
 			}
 			static bool IsPluginSelected(AssemblyTypeRegistry atr)
 			{
@@ -125,39 +130,43 @@ namespace PluginSelect
 			{
 				Debug("BuildUI Postfix");
 				_loadedPlugins ??= InitLoadedPlugins();
-				Reset();
+
 				__instance.RunInUpdates(3, () => 
 				{
 					if (__instance.FilterWorldElement() is null) return;
-					//__instance.OpenInspectorForTarget();
-					
+
+#if DEBUG
+					__instance.OpenInspectorForTarget();
+#endif
+
+					Reset();
 					CurrentInstance = __instance;
 
-					var ui = new UIBuilder(__instance.Slot);
-					RadiantUI_Constants.SetupDefaultStyle(ui);
-					ui.Style.MinHeight = 32f;
-					ui.Style.PreferredHeight = 32f;
-					ui.NestInto(__instance.Slot[2][1][0]);
-					string text = GetSelectedPluginsText();
-					var selectPluginsButton = ui.Button(text);
+					var mainUi = new UIBuilder(__instance.Slot);
+					RadiantUI_Constants.SetupDefaultStyle(mainUi);
+					mainUi.Style.MinHeight = 32f;
+					mainUi.Style.PreferredHeight = 32f;
+					mainUi.NestInto(__instance.Slot[2][1][0]);
+					var selectPluginsButton = mainUi.Button(GetSelectedPluginsText());
 					selectPluginsButton.LocalPressed += (btn, data) => 
 					{
-						RectTransform root = null;
-						if (__instance.Slot.GetComponentInParents<ModalOverlayManager>() != null)
-							root = __instance.Slot.OpenModalOverlay(new float2(0.3f, 0.5f), "Plugins");
-						else
+						RectTransform root = __instance.Slot.OpenModalOverlay(new float2(0.3f, 0.5f), "Plugins");
+						UIBuilder pluginsUi = null;
+						if (root is null)
 						{
+							// create physical panel as a backup
 							var newSlot = __instance.Slot.GetObjectRoot().AddSlot("Plugins Panel");
-							root = RadiantUI_Panel.SetupPanel(newSlot, "Plugins", new float2(300f, 500f)).CurrentRect;
+							pluginsUi = RadiantUI_Panel.SetupPanel(newSlot, "Plugins", new float2(300f, 500f));
+							root = pluginsUi.CurrentRect;
 							newSlot.PersistentSelf = false;
 							//newSlot.LocalScale *= 0.0005f;
-							newSlot.CopyTransform(__instance.Slot);
+							//newSlot.CopyTransform(__instance.Slot);
 							Sync<float3> position_Field = newSlot.Position_Field;
 							float3 a = newSlot.LocalPosition;
 							floatQ q = newSlot.LocalRotation;
 							float3 v = float3.Forward;
 							float3 v2 = q * v;
-							float3 b = v2 * -30f;
+							float3 b = v2 * -60f;
 							position_Field.TweenTo(a + b, 0.2f);
 							__instance.Slot.Destroyed += (destroyable) => 
 							{ 
@@ -167,21 +176,21 @@ namespace PluginSelect
 							
 						if (root != null)
 						{
-							ui = new UIBuilder(root);
-							RadiantUI_Constants.SetupDefaultStyle(ui);
-							ui.Style.MinHeight = 32f;
-							ui.Style.PreferredHeight = 32f;
-							ui.ScrollArea();
-							ui.VerticalLayout(4f);
-							ui.FitContent(SizeFit.Disabled, SizeFit.PreferredSize);
+							pluginsUi ??= new UIBuilder(root);
+							RadiantUI_Constants.SetupDefaultStyle(pluginsUi);
+							pluginsUi.Style.MinHeight = 32f;
+							pluginsUi.Style.PreferredHeight = 32f;
+							pluginsUi.ScrollArea();
+							pluginsUi.VerticalLayout(4f);
+							pluginsUi.FitContent(SizeFit.Disabled, SizeFit.PreferredSize);
 							if (_loadedPlugins.Count == 0)
 							{
-								ui.Text("No plugins are loaded.");
+								pluginsUi.Text("No plugins are loaded.");
 								return;
 							}
 							foreach (var asm in _loadedPlugins)
 							{
-								ui.Checkbox(asm.AssemblyName, IsPluginSelected(asm)).State.OnValueChange += field => 
+								pluginsUi.Checkbox(asm.AssemblyName, IsPluginSelected(asm)).State.OnValueChange += field => 
 								{ 
 									if (__instance.FilterWorldElement() is null) return;
 									if (field.Value)
