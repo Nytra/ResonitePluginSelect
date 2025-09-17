@@ -1,6 +1,8 @@
 # PluginSelect
 
-A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds UI to the custom world start menu to allow you to choose which plugins to start the world with.
+A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds some extra UI to the "Start Custom Session" dialog to allow you to select which data model plugins to use for that session.
+
+Works with data model plugins marked as Optional and also those marked as Core such as Project Obsidian. (Note: Those marked as Core MUST be located in the Libraries folder or they won't work with the mod)
 
 <img width="780" height="373" alt="Screenshot 2025-09-17 062618" src="https://github.com/user-attachments/assets/5ab9e2ef-e015-4e9f-bba2-c14544c2b7b3" />
 
