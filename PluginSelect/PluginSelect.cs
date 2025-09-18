@@ -172,7 +172,7 @@ namespace PluginSelect
 							position_Field.TweenTo(a + b, 0.2f);
 							__instance.Slot.OnPrepareDestroy += (slot) => 
 							{ 
-								newSlot.Destroy();
+								newSlot.FilterWorldElement()?.Destroy();
 							};
 						}
 
