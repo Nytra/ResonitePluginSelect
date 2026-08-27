@@ -1,31 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>
-    <LangVersion>12</LangVersion>
+    <LangVersion>14</LangVersion>
     <AssemblyTitle>PluginSelect</AssemblyTitle>
     <Company>Nytra</Company>
     <Product>PluginSelect</Product>
-    <Copyright>Copyright © Nytra 2025</Copyright>
-    <AssemblyVersion>1.0.1</AssemblyVersion>
-    <FileVersion>1.0.1</FileVersion>
+    <Copyright>Copyright © Nytra 2026</Copyright>
+    <AssemblyVersion>1.0.2</AssemblyVersion>
+    <FileVersion>1.0.2</FileVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Resonite.GameLibs" Version="2025.9.1.1178" />
+    <PackageReference Include="Resonite.GameLibs" Version="*" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\rml_libs\0Harmony.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_libs\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="ResoniteHotReloadLib">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\rml_libs\ResoniteHotReloadLib.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_libs\ResoniteHotReloadLib.dll</HintPath>
     </Reference>
     <Reference Include="ResoniteModLoader">
-      <HintPath>G:\SteamLibrary\steamapps\common\Resonite\Libraries\ResoniteModLoader.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\Libraries\ResoniteModLoader.dll</HintPath>
     </Reference>
   </ItemGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="G:\SteamLibrary\steamapps\common\Resonite\rml_mods\HotReloadMods" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="G:\SteamLibrary\steamapps\common\Resonite\rml_mods" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods\HotReloadMods" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods" />
   </Target>
 </Project>

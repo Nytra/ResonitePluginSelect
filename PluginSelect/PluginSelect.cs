@@ -21,7 +21,7 @@ namespace PluginSelect
 	{
 		public override string Name => "PluginSelect";
 		public override string Author => "Nytra";
-		public override string Version => "1.0.1";
+		public override string Version => "1.0.2";
 		public override string Link => "https://github.com/Nytra/ResonitePluginSelect";
 
 		static Harmony harmony;
@@ -29,7 +29,7 @@ namespace PluginSelect
 		[HarmonyPatch(typeof(World), "StartSession")]
 		class StartSessionPatch
 		{
-			static bool Prefix(ref World __result, WorldManager manager, WorldAction init, ushort port = 0, string forceSessionId = null, DataTreeNode load = null, FrooxEngine.Store.Record record = null, bool unsafeMode = false, IEnumerable<AssemblyTypeRegistry> assemblies = null)
+			static bool Prefix(ref World __result, WorldManager manager, WorldAction init, Dictionary<string, ushort> ports = null, string forceSessionId = null, DataTreeNode load = null, FrooxEngine.Store.Record record = null, bool unsafeMode = false, IEnumerable<AssemblyTypeRegistry> assemblies = null)
 			{
 				if (assemblies != null) return true;
 				if (!PluginSelectPatch.UsePatch) return true;
@@ -38,7 +38,7 @@ namespace PluginSelect
 				Msg("Starting session with custom assemblies...");
 				var newAsms = PluginSelectPatch.GetAssembliesToLoad();
 				PluginSelectPatch.Reset();
-				__result = World.StartSession(manager, init, port, forceSessionId, load, record, unsafeMode, newAsms);
+				__result = World.StartSession(manager, init, ports, forceSessionId, load, record, unsafeMode, newAsms);
 				return false;
 			}
 		}
